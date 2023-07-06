@@ -70,4 +70,11 @@ x_any <- merge(pheno, plinkPath, by = "IID") %>%
 x_any <- model.matrix(~ . -1, data = x_any)
 x_any <- x_any[,-3] # Keeps female in there for some reason - need to remove
 
+# Are outcomes correlated?
+cormatrix <- cor(y_any, method = "pearson")
+round(cormatrix, 2)
+caret::confusionMatrix(y_any)
+
 mod_any <- joinet::joinet(Y = y_any, X = x_any, family = "binomial", trace.it = T)
+coef(mod_any)
+weights(mod_any)
