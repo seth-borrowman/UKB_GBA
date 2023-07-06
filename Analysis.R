@@ -78,3 +78,14 @@ caret::confusionMatrix(y_any)
 mod_any <- joinet::joinet(Y = y_any, X = x_any, family = "binomial", trace.it = T)
 coef(mod_any)
 weights(mod_any)
+
+
+### only Clinvar
+path_clinvar <- pathVars[which(pathVars$ClinSig == "Pathogenic" |
+                        pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
+                        pathVars$ClinSig == "Likely pathogenic" |
+                        pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor"), ]
+park_clinvar <- park[,c(1:8, which(names(park) %in% path_clinvar$Variant))]
+
+mod_park_clinvar <- glm(Parkinson ~ ., data = park_clinvar, family = "binomial")
+coef(summary(mod_park_clinvar))[which(coef(summary(mod_park_clinvar))[,4] < (0.05/56)),]
