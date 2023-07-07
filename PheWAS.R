@@ -22,11 +22,12 @@ ifelse(!dir.exists('csv'), dir.create('csv'), FALSE)
 # Run PheWAS for each variant separately
 for (file in rsid_files){
     rsid <- strsplit(file, '.csv')[[1]]
-    rsid <- rsid %>% strsplit(., 'plink_')[[2]]
+    rsid <- strsplit(rsid, 'plink_')[[1]][2]
     print(rsid)
     # Load geno data
     geno_file <- paste('Z:/UKB Research/GBA1/PheWAS/', file, sep = "")
     geno_data <- read.csv(geno_file)
+    names(geno_data)[1] <- "id"
     results <- phewas(
         phenotypes, geno_data, cores = detectCores(),
         significance.threshold = c('p-value', 'bonferroni', 'fdr'),
