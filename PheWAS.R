@@ -22,7 +22,7 @@ ifelse(!dir.exists('csv'), dir.create('csv'), FALSE)
 # Run PheWAS for each variant separately
 for (file in rsid_files){
     rsid <- strsplit(file, '.csv')[[1]]
-    rsid <- strsplit(rsid, '_')[[2]]
+    rsid <- rsid %>% strsplit(., 'plink_')[[2]]
     print(rsid)
     # Load geno data
     geno_file <- paste('Z:/UKB Research/GBA1/PheWAS/', file, sep = "")
