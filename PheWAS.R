@@ -59,7 +59,7 @@ for (file in rsid_files){
     
     # Create Manhattan plot annotating significant phenotypes
     # Significant phenotypes are defined by passing Bonferroni correction
-    png(filename=sprintf('png/%s_phewas_man.png', rsid), , width = 1400, height = 800)
+    png(filename=sprintf('png/%s_phewas.png', rsid), , width = 1400, height = 800)
     options(ggrepel.max.overlaps = Inf) 
     man_plot <- ggplot(
         results_d, 
