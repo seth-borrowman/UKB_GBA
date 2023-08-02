@@ -119,7 +119,7 @@ pathVars <- pathogenicity[which(pathogenicity$ClinSig == "Likely pathogenic" |
                         pathogenicity$ClinSig == "Pathogenic" |
                         pathogenicity$ClinSig == "Pathogenic/Likely pathogenic" |
                         pathogenicity$ClinSig == "Pathogenic/Likely pathogenic; risk factor" |
-                        pathogenicity$REVEL > 0.75),]
+                        pathogenicity$REVEL > 0.5),]
 
 # Filter plink and factor so homozyg. major allele is reference
 plinkPath <- cbind(plink$IID, plink[,which(names(plink) %in% pathVars$Variant)])
@@ -127,6 +127,9 @@ names(plinkPath)[1] <- "IID"
 plinkPath[,2:ncol(plinkPath)] <- plinkPath[, 2:ncol(plinkPath)] %>%
     lapply(factor, levels = c(2, 1, 0))
 plinkPath <- na.omit(plinkPath)
+
+LD <- cor(model.matrix(~ . -1, data = plinkPath[,2:ncol(plinkPath)]))
+hist(LD)
 
 # Find allele freq of minor variants in cohort
 pathVars$CohortFreq <- rep(0, nrow(pathVars))
