@@ -7,11 +7,12 @@ load("CleanVariantsWrkspc.RData")
 pheno <- read_csv("Phenotypes.csv")
 
 # Factor columns
-path_Vars <- pathVars[which(pathVars$ClinSig == "Pathogenic" |
-                                   pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
-                                   pathVars$ClinSig == "Likely pathogenic" |
-                                   pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor" |
-                                    pathVars$REVEL >= 0.75),] # Filter further to REVEL > 0.75
+path_Vars <- pathVars[which(pathVars$CohortFreq > 1e-04 &
+                (pathVars$ClinSig == "Pathogenic" |
+                pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
+                pathVars$ClinSig == "Likely pathogenic" |
+                pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor" |
+                pathVars$REVEL >= 0.6)),]
 plinkPath <- plinkPath[ ,which(colnames(plinkPath) %in% c("IID", path_Vars$Variant))]
 pheno$Sex <- factor(pheno$Sex, labels = c("Female", "Male"))
 pheno$Sex <- relevel(pheno$Sex, ref = "Female")
@@ -54,7 +55,15 @@ for (i in 2:ncol(plinkPath)){
         removecols <- append(removecols, as.integer(i))
     }
 }
-plinkPath <- plinkPath[,-removecols]
+try(plinkPath <- plinkPath[,-removecols], silent = T)
+
+# plinkPath <- plinkPath[ ,which(colnames(plinkPath) %in% c("IID", path_Vars$Variant))]
+# 
+# for (i in 2:ncol(plinkPath)) {
+#     new <- plinkPath %>% select(IID, names(plinkPath)[i])
+#     name <- names(new)[2] %>% gsub(":", "_", .) %>% gsub(">", "_", .)
+#     write_csv(new, sprintf("plink_%s.csv", name), append = F)
+# }
 
 ### Parkinson's
 
@@ -67,7 +76,7 @@ x_park <- model.matrix(~ . -1, data = x_park)
 x_park <- x_park[,-3] # Keeps female in there for some reason - need to remove
 
 mod_park <- glm(y_park ~ x_park, family = "binomial")
-coef(summary(mod_park))[which(coef(summary(mod_park))[,4] < (0.05/56)),]
+coef(summary(mod_park))[which(coef(summary(mod_park))[,4] < (0.05/24)),]
 
 ### Any Gaucher related outcome
 
@@ -81,9 +90,8 @@ y_any <- pheno %>%
 # x_any <- x_any[,-3] # Keeps female in there for some reason - need to remove
 
 # Are outcomes correlated?
-cormatrix <- cor(y_any, method = "pearson")
-round(cormatrix, 2)
-caret::confusionMatrix(y_any)
+#cormatrix <- cor(y_any, method = "pearson")
+#round(cormatrix, 2)
 
 # mod_any <- joinet::joinet(Y = y_any, X = x_any, family = "binomial", trace.it = T)
 # coef(mod_any)
@@ -91,37 +99,29 @@ caret::confusionMatrix(y_any)
 
 
 ### only Clinvar
-path_clinvar <- pathVars[which(pathVars$ClinSig == "Pathogenic" |
-                        pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
-                        pathVars$ClinSig == "Likely pathogenic" |
-                        pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor")]
-park_clinvar <- park[,c(1:8, which(names(park) %in% path_clinvar$Variant))]
-
-mod_park_clinvar <- glm(Parkinson ~ ., data = park_clinvar, family = "binomial")
-coef(summary(mod_park_clinvar))[which(coef(summary(mod_park_clinvar))[,4] < (0.05/56)),]
+# path_clinvar <- pathVars[which(pathVars$ClinSig == "Pathogenic" |
+#                         pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
+#                         pathVars$ClinSig == "Likely pathogenic" |
+#                         pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor")]
+# park_clinvar <- park[,c(1:8, which(names(park) %in% path_clinvar$Variant))]
+# 
+# mod_park_clinvar <- glm(Parkinson ~ ., data = park_clinvar, family = "binomial")
+# coef(summary(mod_park_clinvar))[which(coef(summary(mod_park_clinvar))[,4] < (0.05/56)),]
 
 ### Survival
 survivors <- pheno1 %>%
     select(IID, YOB, DODeath) %>%
     merge(., plinkPath, by = "IID") %>%
-    select(IID, YOB, DODeath, rs1671872221, `1:155235769:G>A`, rs80356771)
+    select(IID, YOB, DODeath, rs80356771, rs76763715, rs381418)
 survivors <- survivors %>%
     mutate(time = DODeath - ymd(YOB, truncated = 2L)) %>%
     mutate(status = case_when(
         is.na(DODeath) ~ 0,
         .default = 1
     ))
-survivalAnalysis <- survdiff(Surv(time, status) ~ rs1671872221, data = survivors)
-names(survivors)[5] <- "A155235769"
-survivalAnalysis1 <- survdiff(Surv(time, status) ~ A155235769, data = survivors)
-survivalAnalysis2 <- survdiff(Surv(time, status) ~ rs80356771, data = survivors)
-
-survfit2(Surv(time, status) ~ rs1671872221, data = survivors) %>% 
-    ggsurvfit() +
-    labs(
-        x = "Survival time (days)",
-        y = "Overall survival probability"
-    )
+survivalAnalysis <- survdiff(Surv(time, status) ~ rs80356771, data = survivors)
+survivalAnalysis1 <- survdiff(Surv(time, status) ~ rs76763715, data = survivors)
+#survivalAnalysis2 <- survdiff(Surv(time, status) ~ rs381418, data = survivors)
 
 survfit2(Surv(time, status) ~ rs80356771, data = survivors) %>% 
     ggsurvfit() +
@@ -129,3 +129,17 @@ survfit2(Surv(time, status) ~ rs80356771, data = survivors) %>%
         x = "Survival time (days)",
         y = "Overall survival probability"
     )
+
+survfit2(Surv(time, status) ~ rs76763715, data = survivors) %>% 
+    ggsurvfit() +
+    labs(
+        x = "Survival time (days)",
+        y = "Overall survival probability"
+    )
+
+#survfit2(Surv(time, status) ~ rs381418, data = survivors) %>% 
+#    ggsurvfit() +
+#   labs(
+#        x = "Survival time (days)",
+#        y = "Overall survival probability"
+#    )
