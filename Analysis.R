@@ -1,13 +1,14 @@
 library(tidyverse)
-library(survival)
-library(ggsurvfit)
+library(latex2exp)
+library(ggrepel)
 
 setwd("Z:/UKB Research/GBA1")
 load("CleanVariantsWrkspc.RData")
 pheno <- read_csv("Phenotypes.csv")
 
 # Factor columns
-path_Vars <- pathVars[which(pathVars$CohortFreq > 1e-04 &
+path_Vars <- pathVars[
+    which(#pathVars$CohortFreq > 1e-05 &
                 (pathVars$ClinSig == "Pathogenic" |
                 pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
                 pathVars$ClinSig == "Likely pathogenic" |
@@ -57,13 +58,6 @@ for (i in 2:ncol(plinkPath)){
 }
 try(plinkPath <- plinkPath[,-removecols], silent = T)
 
-# plinkPath <- plinkPath[ ,which(colnames(plinkPath) %in% c("IID", path_Vars$Variant))]
-# 
-# for (i in 2:ncol(plinkPath)) {
-#     new <- plinkPath %>% select(IID, names(plinkPath)[i])
-#     name <- names(new)[2] %>% gsub(":", "_", .) %>% gsub(">", "_", .)
-#     write_csv(new, sprintf("plink_%s.csv", name), append = F)
-# }
 
 ### Parkinson's
 
@@ -75,71 +69,73 @@ x_park <- park %>% select(-Parkinson)
 x_park <- model.matrix(~ . -1, data = x_park)
 x_park <- x_park[,-3] # Keeps female in there for some reason - need to remove
 
-mod_park <- glm(y_park ~ x_park, family = "binomial")
-coef(summary(mod_park))[which(coef(summary(mod_park))[,4] < (0.05/24)),]
+summary <- matrix(rep(0, 5*(ncol(x_park)-14)),
+                  ncol = 5, nrow = ncol(x_park)-14) %>%
+    as.data.frame()
+colnames(summary) <- c("Variant", "Estimate", "Std. Error", "z value",
+                       "p")
+for (i in 15:ncol(x_park)) {
+    variants <- seq(15, ncol(x_park))
+    variants <- variants[which(variants != i)]
+    x_new <- x_park[,-variants]
+    mod <- glm(y_park ~ x_new, family = "binomial")
+    summary[(i - 14), 1] <- colnames(x_new)[15]
+    summary[(i - 14), 2:5] <- unname(coef(summary(mod))[16,])
+}
+summary[,2:5] <- sapply(summary[,2:5], as.numeric)
+summary <- summary %>%
+    # Bonferroni
+    mutate(Bonferroni = if_else(p <= (0.05/nrow(summary)),
+                                TRUE, FALSE)) %>%
+    # Benjamini-Hochberg FDR with alpha 0.05
+    mutate(FDR = if_else(p <= ((match(p,
+                        summary$p[order(summary$p, decreasing = F)]) / 
+                            nrow(summary))*0.05),
+                        TRUE, FALSE)) %>%
+    # Create label for plotting
+    mutate(Label = gsub("`", "", substr(Variant, 1, nchar(Variant) - 1)))
 
-### Any Gaucher related outcome
-
-y_any <- pheno %>% 
-     select(c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro, AnyOcular))
-# y_any <- as.matrix(y_any)
-# x_any <- merge(pheno, plinkPath, by = "IID") %>%
-#     select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro, AnyOcular, IID,
-#               Parkinson))
-# x_any <- model.matrix(~ . -1, data = x_any)
-# x_any <- x_any[,-3] # Keeps female in there for some reason - need to remove
-
-# Are outcomes correlated?
-#cormatrix <- cor(y_any, method = "pearson")
-#round(cormatrix, 2)
-
-# mod_any <- joinet::joinet(Y = y_any, X = x_any, family = "binomial", trace.it = T)
-# coef(mod_any)
-# weights(mod_any)
+# Find and set FDR
+max_FDR_p <- max(summary[which(summary$FDR == T), 5])
+summary <- summary %>%
+    mutate(FDR = if_else(summary$p <= max_FDR_p, T, F))
+summary <- merge(summary, pathVars[,c(1, 3)], by.x = "Label", by.y = "Variant")
 
 
-### only Clinvar
-# path_clinvar <- pathVars[which(pathVars$ClinSig == "Pathogenic" |
-#                         pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
-#                         pathVars$ClinSig == "Likely pathogenic" |
-#                         pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor")]
-# park_clinvar <- park[,c(1:8, which(names(park) %in% path_clinvar$Variant))]
-# 
-# mod_park_clinvar <- glm(Parkinson ~ ., data = park_clinvar, family = "binomial")
-# coef(summary(mod_park_clinvar))[which(coef(summary(mod_park_clinvar))[,4] < (0.05/56)),]
+### Plot results
+plot <- ggplot(summary, aes(x = Pos, y = -log10(p))) + 
+    geom_point() +
+    geom_hline(aes(yintercept = -log10(0.05/nrow(summary)),
+               color = "Bonferroni", linetype = "Bonferroni")) +
+    geom_hline(aes(yintercept = -log10(max_FDR_p), color = "FDR", linetype = "FDR")) +
+    scale_color_manual(values = c("Bonferroni" = "red", "FDR" = "blue"),
+                       name = "Legend") +
+    scale_linetype_manual(values = c("Bonferroni" = "solid", "FDR" = "dashed"),
+                          name = "Legend") +
+    geom_text_repel(
+        data=. %>% mutate(label = ifelse((Bonferroni == T) | (FDR == T),
+        as.character(Label), '')), aes(label = label), size = 3,
+        box.padding = unit(0.7, 'lines')) +
+    ggtitle("GBA variants associated with Parkinson's Disease") +
+    ylab(TeX("$-log_{10}p$")) +
+    xlab("Chr. 1") +
+    labs(shape = "FDR", color = "") +
+    theme(panel.grid.major.x = element_blank(),
+          legend.key = element_rect(fill = "transparent"),
+          legend.title = element_blank(),
+          panel.background = element_blank(),
+          axis.ticks.y = element_line(color = "grey"),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor.y = element_blank())
+    
+plot
 
-### Survival
-survivors <- pheno1 %>%
-    select(IID, YOB, DODeath) %>%
-    merge(., plinkPath, by = "IID") %>%
-    select(IID, YOB, DODeath, rs80356771, rs76763715, rs381418)
-survivors <- survivors %>%
-    mutate(time = DODeath - ymd(YOB, truncated = 2L)) %>%
-    mutate(status = case_when(
-        is.na(DODeath) ~ 0,
-        .default = 1
-    ))
-survivalAnalysis <- survdiff(Surv(time, status) ~ rs80356771, data = survivors)
-survivalAnalysis1 <- survdiff(Surv(time, status) ~ rs76763715, data = survivors)
-#survivalAnalysis2 <- survdiff(Surv(time, status) ~ rs381418, data = survivors)
+### Export for PheWAS
+to_export <- plinkPath %>%
+    select(IID, summary$Label[which(summary$FDR == T)])
 
-survfit2(Surv(time, status) ~ rs80356771, data = survivors) %>% 
-    ggsurvfit() +
-    labs(
-        x = "Survival time (days)",
-        y = "Overall survival probability"
-    )
-
-survfit2(Surv(time, status) ~ rs76763715, data = survivors) %>% 
-    ggsurvfit() +
-    labs(
-        x = "Survival time (days)",
-        y = "Overall survival probability"
-    )
-
-#survfit2(Surv(time, status) ~ rs381418, data = survivors) %>% 
-#    ggsurvfit() +
-#   labs(
-#        x = "Survival time (days)",
-#        y = "Overall survival probability"
-#    )
+for (i in 2:ncol(to_export)) {
+    new <- to_export %>% select(IID, names(to_export)[i])
+    name <- names(new)[2] %>% gsub(":", "_", .) %>% gsub(">", "_", .)
+    write_csv(new, sprintf("PheWAS\\plink_%s.csv", name), append = F)
+}
