@@ -112,10 +112,10 @@ plot <- ggplot(summary, aes(x = Pos, y = -log10(p))) +
                        name = "Legend") +
     scale_linetype_manual(values = c("Bonferroni" = "solid", "FDR" = "dashed"),
                           name = "Legend") +
-    geom_text_repel(
+    geom_label_repel(
         data=. %>% mutate(label = ifelse((Bonferroni == T) | (FDR == T),
-        as.character(Label), '')), aes(label = label), size = 3,
-        box.padding = unit(0.7, 'lines')) +
+        as.character(Label), '')), aes(label = label), size = 3.5,
+        label.size = NA, box.padding = 0.6, min.segment.length = 0.25) +
     ggtitle("GBA variants associated with Parkinson's Disease") +
     ylab(TeX("$-log_{10}p$")) +
     xlab("Chr. 1") +
@@ -124,9 +124,13 @@ plot <- ggplot(summary, aes(x = Pos, y = -log10(p))) +
           legend.key = element_rect(fill = "transparent"),
           legend.title = element_blank(),
           panel.background = element_blank(),
-          axis.ticks.y = element_line(color = "grey"),
-          panel.grid.major.y = element_blank(),
-          panel.grid.minor.y = element_blank())
+          axis.ticks.y = element_blank(),
+          panel.grid.major.y = element_line(color = "lightgrey",
+                                            linetype = "dotted"),
+          panel.grid.minor.y = element_line(color = "lightgrey",
+                                            linetype = "dotted"),
+          axis.line.y.left = element_line(color = "black"),
+          axis.line.x.bottom = element_line(color = "black"))
     
 plot
 
