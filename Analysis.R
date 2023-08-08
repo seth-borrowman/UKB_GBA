@@ -8,13 +8,13 @@ pheno <- read_csv("Phenotypes.csv")
 
 # Factor columns
 path_Vars <- pathVars[
-    which(#pathVars$CohortFreq > 1e-05 &
-                (pathVars$ClinSig == "Pathogenic" |
-                pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
-                pathVars$ClinSig == "Likely pathogenic" |
-                pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor" |
-                pathVars$REVEL >= 0.6)),]
-plinkPath <- plinkPath[ ,which(colnames(plinkPath) %in% c("IID", path_Vars$Variant))]
+    which(pathVars$ClinSig == "Pathogenic" |
+          pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
+          pathVars$ClinSig == "Likely pathogenic" |
+          pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor" |
+          pathVars$REVEL >= 0.6),] # More strict than CleanVariants.R
+plinkPath <- plinkPath[ ,which(colnames(plinkPath) %in% c("IID",
+                                                          path_Vars$Variant))]
 pheno$Sex <- factor(pheno$Sex, labels = c("Female", "Male"))
 pheno$Sex <- relevel(pheno$Sex, ref = "Female")
 pheno$BMI <- cut(pheno$BMI,
@@ -69,6 +69,7 @@ x_park <- park %>% select(-Parkinson)
 x_park <- model.matrix(~ . -1, data = x_park)
 x_park <- x_park[,-3] # Keeps female in there for some reason - need to remove
 
+# Association analysis with logistic regression for each SNV
 summary <- matrix(rep(0, 5*(ncol(x_park)-14)),
                   ncol = 5, nrow = ncol(x_park)-14) %>%
     as.data.frame()
@@ -84,7 +85,7 @@ for (i in 15:ncol(x_park)) {
 }
 summary[,2:5] <- sapply(summary[,2:5], as.numeric)
 summary <- summary %>%
-    # Bonferroni
+    # Bonferroni correction based on alpha 0.05
     mutate(Bonferroni = if_else(p <= (0.05/nrow(summary)),
                                 TRUE, FALSE)) %>%
     # Benjamini-Hochberg FDR with alpha 0.05
@@ -95,7 +96,7 @@ summary <- summary %>%
     # Create label for plotting
     mutate(Label = gsub("`", "", substr(Variant, 1, nchar(Variant) - 1)))
 
-# Find and set FDR
+# Find and set FDR based on lowest passing p-value
 max_FDR_p <- max(summary[which(summary$FDR == T), 5])
 summary <- summary %>%
     mutate(FDR = if_else(summary$p <= max_FDR_p, T, F))
@@ -107,7 +108,8 @@ plot <- ggplot(summary, aes(x = Pos, y = -log10(p))) +
     geom_point() +
     geom_hline(aes(yintercept = -log10(0.05/nrow(summary)),
                color = "Bonferroni", linetype = "Bonferroni")) +
-    geom_hline(aes(yintercept = -log10(max_FDR_p), color = "FDR", linetype = "FDR")) +
+    geom_hline(aes(yintercept = -log10(max_FDR_p), color = "FDR",
+                   linetype = "FDR")) +
     scale_color_manual(values = c("Bonferroni" = "red", "FDR" = "blue"),
                        name = "Legend") +
     scale_linetype_manual(values = c("Bonferroni" = "solid", "FDR" = "dashed"),
