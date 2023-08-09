@@ -156,7 +156,7 @@ summary <- summary %>%
         Bonferroni == T | FDR == T ~ 1,
         .default = 0
     ))
-summary[nrow(summary), 1] <- " Any Variant"
+summary[nrow(summary), 1] <- " Any Variant" # Make it show up last on plot
 plot2 <- ggplot(summary[which(summary$sigOR == 1),],
                 aes(x = exp(Estimate), y = Label)) +
     geom_point() +
