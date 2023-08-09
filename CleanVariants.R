@@ -58,6 +58,7 @@ for (i in 1:nrow(names)) {
         names$NewName[i] <- paste("rs", names$`RS# (dbSNP)`[i], sep = "")
     }
 }
+names$NewName <- make.unique(names$NewName)
 
 # Make plink have new names
 a <- names$NewName
@@ -128,8 +129,6 @@ plinkPath[,2:ncol(plinkPath)] <- plinkPath[, 2:ncol(plinkPath)] %>%
     lapply(factor, levels = c(2, 1, 0))
 plinkPath <- na.omit(plinkPath)
 
-LD <- cor(model.matrix(~ . -1, data = plinkPath[,2:ncol(plinkPath)]))
-hist(LD)
 
 # Find allele freq of minor variants in cohort
 pathVars$CohortFreq <- rep(0, nrow(pathVars))
@@ -149,8 +148,12 @@ pathVars <- pathVars %>% mutate(Total = NumHet + NumHom)
 
 # Count how many people in the cohort have any variants
 AnyVars <- plinkPath %>% filter(if_any(where(is.factor), \(val) val %in% c("0", "1")))
-    # 2999
-
+    # 22301
+for(i in 2:ncol(plinkPath)) {
+    if(names(plinkPath)[i] != pathVars$Variant[i-1]){
+        print(names(plinkPath)[i])
+    }
+}
 rm(plink)
 rm(pathogenicity)
 save.image("Z:/UKB Research/GBA1/CleanVariantsWrkspc.RData")
