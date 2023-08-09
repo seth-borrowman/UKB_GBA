@@ -193,5 +193,6 @@ for (i in 2:ncol(to_export)) {
 path_Vars1 <- path_Vars[which(path_Vars$Variant %in%
                                    summary$Label[which(summary$sigOR == 1)]),]
 write_csv(path_Vars1, "SelectedVariants.csv")
+write_csv(summary, "AnalysisSummary.csv")
 
 save.image("AfterAnalysis.RData")
