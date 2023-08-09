@@ -180,7 +180,7 @@ plot2 <- ggplot(summary[which(summary$sigOR == 1),],
           axis.line.x.bottom = element_line(color = "black"))
 plot2
 
-### Export for PheWAS
+### Export for PheWAS and other analysis
 to_export <- plinkPath %>%
     select(IID, summary$Label[which(summary$FDR == T)])
 
@@ -189,5 +189,9 @@ for (i in 2:ncol(to_export)) {
     name <- names(new)[2] %>% gsub(":", "_", .) %>% gsub(">", "_", .)
     write_csv(new, sprintf("PheWAS\\plink_%s.csv", name), append = F)
 }
+
+path_Vars1 <- path_Vars[which(path_Vars$Variant %in%
+                                   summary$Label[which(summary$sigOR == 1)]),]
+write_csv(path_Vars1, "SelectedVariants.csv")
 
 save.image("AfterAnalysis.RData")
