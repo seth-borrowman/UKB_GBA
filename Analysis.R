@@ -104,8 +104,22 @@ summary <- summary %>%
 summary <- merge(summary, pathVars[,c(1, 3)], by.x = "Label", by.y = "Variant")
 
 
+### Having any GBA variant
+any_x <- pheno %>% select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro,
+                             AnyOcular)) %>%
+    mutate(AnyVar = case_when(
+        IID %in% AnyVars$IID ~ 1,
+        .default = 0
+    ))
+mod_any <- glm(Parkinson ~ ., data = any_x, family = "binomial")
+# Add for plotting
+mod_any_sum <- c(rep("Any Variant", 2), unname(coef(summary(mod_any))[16,]),
+                      T, T, NA)
+summary[nrow(summary)+1,] <- mod_any_sum
+summary[,c(3:6, 9)] <- summary[,c(3:6, 9)] %>% apply(., 2, as.numeric)
+
 ### Plot results
-plot <- ggplot(summary, aes(x = Pos, y = -log10(p))) + 
+plot <- ggplot(na.omit(summary), aes(x = Pos, y = -log10(p))) + 
     geom_point() +
     geom_hline(aes(yintercept = -log10(0.05/nrow(summary)),
                color = "Bonferroni", linetype = "Bonferroni")) +
@@ -142,6 +156,7 @@ summary <- summary %>%
         Bonferroni == T | FDR == T ~ 1,
         .default = 0
     ))
+summary[nrow(summary), 1] <- " Any Variant"
 plot2 <- ggplot(summary[which(summary$sigOR == 1),],
                 aes(x = exp(Estimate), y = Label)) +
     geom_point() +
