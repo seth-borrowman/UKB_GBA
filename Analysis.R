@@ -67,10 +67,11 @@ park <- merge(pheno, plinkPath, by = "IID") %>%
 y_park <- as.matrix(as.numeric(park$Parkinson)) - 1
 x_park <- park %>% select(-Parkinson)
 x_park <- model.matrix(~ . -1, data = x_park)
-x_park <- x_park[,-3] # Keeps female in there for some reason - need to remove
+# Keeps female in there for some reason - need to remove
+x_park <- x_park[,-which(colnames(x_park) == "SexFemale")]
 
 # Association analysis with logistic regression for each SNV
-summary <- matrix(rep(0, 5*(ncol(x_park)-14)),
+summary <- matrix(rep(0, 5*(ncol(x_park)-14)), # -14 to skip covariates
                   ncol = 5, nrow = ncol(x_park)-14) %>%
     as.data.frame()
 colnames(summary) <- c("Variant", "Estimate", "Std. Error", "z value",
