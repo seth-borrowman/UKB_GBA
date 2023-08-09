@@ -189,3 +189,5 @@ for (i in 2:ncol(to_export)) {
     name <- names(new)[2] %>% gsub(":", "_", .) %>% gsub(">", "_", .)
     write_csv(new, sprintf("PheWAS\\plink_%s.csv", name), append = F)
 }
+
+save.image("AfterAnalysis.RData")
