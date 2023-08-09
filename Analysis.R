@@ -137,6 +137,34 @@ plot <- ggplot(summary, aes(x = Pos, y = -log10(p))) +
     
 plot
 
+summary <- summary %>%
+    mutate(sigOR = case_when(
+        Bonferroni == T | FDR == T ~ 1,
+        .default = 0
+    ))
+plot2 <- ggplot(summary[which(summary$sigOR == 1),],
+                aes(x = exp(Estimate), y = Label)) +
+    geom_point() +
+    geom_errorbarh(aes(xmax = exp(Estimate) + 1.96 * exp(`Std. Error`),
+                       xmin = exp(Estimate) - 1.96 * exp(`Std. Error`),
+                       height = 0.3)) +
+    xlim(c(-2, 160)) +
+    ylab("Variant") +
+    xlab("Odds Ratio Estimate") +
+    ggtitle("Parkinson's odds ratios of selected variants with 95% CI") +
+    theme(panel.grid.major.x = element_line(color = "lightgrey",
+                                            linetype = "dotted"),
+          legend.key = element_rect(fill = "transparent"),
+          legend.title = element_blank(),
+          panel.background = element_blank(),
+          axis.ticks.y = element_blank(),
+          #axis.text.y = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          axis.line.y.left = element_line(color = "black"),
+          axis.line.x.bottom = element_line(color = "black"))
+plot2
+
 ### Export for PheWAS
 to_export <- plinkPath %>%
     select(IID, summary$Label[which(summary$FDR == T)])
