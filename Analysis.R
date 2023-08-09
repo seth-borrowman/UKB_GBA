@@ -87,18 +87,18 @@ for (i in 15:ncol(x_park)) {
 summary[,2:5] <- sapply(summary[,2:5], as.numeric)
 summary <- summary %>%
     # Bonferroni correction based on alpha 0.05
-    mutate(Bonferroni = if_else(p <= (0.05/nrow(summary)),
+    mutate(Bonferroni = if_else(p <= (0.05/(nrow(summary)+1)), # +1 for any var
                                 TRUE, FALSE)) %>%
     # Benjamini-Hochberg FDR with alpha 0.05
     mutate(FDR = if_else(p <= ((match(p,
                         summary$p[order(summary$p, decreasing = F)]) / 
-                            nrow(summary))*0.05),
+                            (nrow(summary)+1))*0.05),
                         TRUE, FALSE)) %>%
     # Create label for plotting
     mutate(Label = gsub("`", "", substr(Variant, 1, nchar(Variant) - 1)))
 
 # Find and set FDR based on lowest passing p-value
-max_FDR_p <- max(summary[which(summary$FDR == T), 5])
+max_FDR_p <- max(summary[which(summary$FDR == T), 5], na.rm = T)
 summary <- summary %>%
     mutate(FDR = if_else(summary$p <= max_FDR_p, T, F))
 summary <- merge(summary, pathVars[,c(1, 3)], by.x = "Label", by.y = "Variant")
@@ -182,7 +182,8 @@ plot2
 
 ### Export for PheWAS and other analysis
 to_export <- plinkPath %>%
-    select(IID, summary$Label[which(summary$FDR == T)])
+    select(IID, summary$Label[which(summary$FDR == T &
+                                        summary$Label != " Any Variant")])
 
 for (i in 2:ncol(to_export)) {
     new <- to_export %>% select(IID, names(to_export)[i])
