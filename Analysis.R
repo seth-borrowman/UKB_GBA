@@ -5,6 +5,7 @@ library(ggrepel)
 setwd("Z:/UKB Research/GBA1")
 load("CleanVariantsWrkspc.RData")
 pheno <- read_csv("Phenotypes.csv")
+pca <- read_csv("GBA_PCA.csv")
 
 # Factor columns
 path_Vars <- pathVars[
@@ -60,10 +61,13 @@ try(plinkPath <- plinkPath[,-removecols], silent = T)
 
 
 ### Parkinson's
-
+colnames(pca)[1] <- "IID"
 park <- merge(pheno, plinkPath, by = "IID") %>%
-    select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro, AnyOcular, IID))
- 
+    merge(., pca) %>%
+    select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc,
+              AnyNeuro, AnyOcular, IID)) %>%
+    na.omit()
+
 y_park <- as.matrix(as.numeric(park$Parkinson)) - 1
 x_park <- park %>% select(-Parkinson)
 x_park <- model.matrix(~ . -1, data = x_park)
@@ -71,13 +75,13 @@ x_park <- model.matrix(~ . -1, data = x_park)
 x_park <- x_park[,-which(colnames(x_park) == "SexFemale")]
 
 # Association analysis with logistic regression for each SNV
-summary <- matrix(rep(0, 5*(ncol(x_park)-14)), # -14 to skip covariates
-                  ncol = 5, nrow = ncol(x_park)-14) %>%
+summary <- matrix(rep(0, 5*(ncol(x_park)-24)), # -14 to skip covariates
+                  ncol = 5, nrow = ncol(x_park)-24) %>%
     as.data.frame()
 colnames(summary) <- c("Variant", "Estimate", "Std. Error", "z value",
                        "p")
-for (i in 15:ncol(x_park)) {
-    variants <- seq(15, ncol(x_park))
+for (i in 15:(ncol(x_park)-10)) {
+    variants <- seq(15, ncol(x_park)-10)
     variants <- variants[which(variants != i)]
     x_new <- x_park[,-variants]
     mod <- glm(y_park ~ x_new, family = "binomial")
@@ -110,7 +114,8 @@ any_x <- pheno %>% select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro,
     mutate(AnyVar = case_when(
         IID %in% AnyVars$IID ~ 1,
         .default = 0
-    ))
+    )) %>%
+    merge(., pca)
 mod_any <- glm(Parkinson ~ ., data = any_x, family = "binomial")
 # Add for plotting
 mod_any_sum <- c(rep("Any Variant", 2), unname(coef(summary(mod_any))[16,]),
