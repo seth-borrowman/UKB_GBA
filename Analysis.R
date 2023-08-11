@@ -204,12 +204,20 @@ write_csv(summary, "AnalysisSummary.csv")
 save.image("AfterAnalysis.RData")
 
 ### Plot PCA
-plot3 <- ggplot(any_x[which(any_x$AnyVar != 1),], aes(x = p22009_a1, y = p22009_a2)) +
-    geom_point(alpha = 0.1) +
+# Plot those having any variant on PCA
+plot3 <- ggplot(any_x[which(any_x$AnyVar != 1),], aes(x = p22009_a1,
+                                                      y = p22009_a2)) +
+    geom_point(alpha = 0.1, shape = 16, size = 1) +
     geom_point(data = any_x[which(any_x$AnyVar == 1),],
-               aes(x = p22009_a1, y = p22009_a2), color = "red")
+               aes(x = p22009_a1, y = p22009_a2),
+               color = "red", alpha = 0.3, shape = 16, size = 1)+
+    theme_minimal()+
+    xlab("PC1")+
+    ylab("PC2")+
+    ggtitle("Principal components of those having any GBA variant")
 plot3
 
+# Create new variable highlighting selected variants
 park <- park %>%
     mutate(WhichVar = case_when(
         rs80356771 == 1 ~ "rs80356771",
@@ -225,9 +233,14 @@ park <- park %>%
     ))
 park$WhichVar <- factor(park$WhichVar)
 
+# Plot selected variants on PCA
 plot4 <- ggplot(park, aes(x = p22009_a1, y = p22009_a2)) +
-    geom_point(alpha = 0.1) +
+    geom_point(alpha = 0.1, shape = 16, size = 1) +
     geom_point(data = park[which(park$WhichVar != "None"),],
-               aes(x = p22009_a1, y = p22009_a2, color = WhichVar), alpha = 0.5) +
-    theme_minimal()
+               aes(x = p22009_a1, y = p22009_a2,
+                   color = WhichVar), alpha = 0.5, shape = 16, size = 1) +
+    theme_minimal()+
+    xlab("PC1") +
+    ylab("PC2")+
+    ggtitle("Principal components of selected variants")
 plot4
