@@ -202,3 +202,32 @@ write_csv(path_Vars1, "SelectedVariants.csv")
 write_csv(summary, "AnalysisSummary.csv")
 
 save.image("AfterAnalysis.RData")
+
+### Plot PCA
+plot3 <- ggplot(any_x[which(any_x$AnyVar != 1),], aes(x = p22009_a1, y = p22009_a2)) +
+    geom_point(alpha = 0.1) +
+    geom_point(data = any_x[which(any_x$AnyVar == 1),],
+               aes(x = p22009_a1, y = p22009_a2), color = "red")
+plot3
+
+park <- park %>%
+    mutate(WhichVar = case_when(
+        rs80356771 == 1 ~ "rs80356771",
+        `1:155235769:G>A` == 1 ~ "1:155235769:G>A",
+        rs76763715 == 1 | rs76763715 == 0 ~ "rs76763715",
+        rs75548401 == 1 | rs75548401 == 0 ~ "rs75548401",
+        `1:155236366:C>T` == 1 ~ "1:155236366:C>T",
+        rs381427 == 1 ~ "rs381427",
+        rs381418 == 1 ~ "rs381418",
+        rs61748906 == 1 ~ "rs61748906",
+        rs1671872221 == 1 ~ "rs1671872221",
+        .default = "None"
+    ))
+park$WhichVar <- factor(park$WhichVar)
+
+plot4 <- ggplot(park, aes(x = p22009_a1, y = p22009_a2)) +
+    geom_point(alpha = 0.1) +
+    geom_point(data = park[which(park$WhichVar != "None"),],
+               aes(x = p22009_a1, y = p22009_a2, color = WhichVar), alpha = 0.5) +
+    theme_minimal()
+plot4
