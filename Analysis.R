@@ -116,6 +116,7 @@ any_x <- pheno %>% select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro,
         .default = 0
     )) %>%
     merge(., pca)
+any_x <- select(any_x, -IID)
 mod_any <- glm(Parkinson ~ ., data = any_x, family = "binomial")
 # Add for plotting
 mod_any_sum <- c(rep("Any Variant", 2), unname(coef(summary(mod_any))[16,]),
@@ -190,6 +191,15 @@ to_export <- plinkPath %>%
     select(IID, summary$Label[which(summary$FDR == T &
                                         summary$Label != " Any Variant")])
 
+anyVar <- pheno %>% select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro,
+                             AnyOcular)) %>%
+    mutate(AnyVar = case_when(
+        IID %in% AnyVars$IID ~ 1,
+        .default = 0
+    )) %>%
+    select(IID, AnyVar)
+to_export <- merge(to_export, anyVar)
+
 for (i in 2:ncol(to_export)) {
     new <- to_export %>% select(IID, names(to_export)[i])
     name <- names(new)[2] %>% gsub(":", "_", .) %>% gsub(">", "_", .)
@@ -242,5 +252,6 @@ plot4 <- ggplot(park, aes(x = p22009_a1, y = p22009_a2)) +
     theme_minimal()+
     xlab("PC1") +
     ylab("PC2")+
-    ggtitle("Principal components of selected variants")
+    ggtitle("Principal components of selected variants")+
+    scale_color_discrete(name = "Variant")
 plot4
