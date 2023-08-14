@@ -31,18 +31,17 @@ for (file in rsid_files){
     results <- phewas(
         phenotypes, geno_data, cores = detectCores(),
         significance.threshold = c('p-value', 'bonferroni', 'fdr'),
-        covariates = covariate, additive.genotypes = FALSE)
+        covariates = covariate, additive.genotypes = T,
+        MASS.confint.level = 0.95)
     
     # Add PheWAS descriptions
     results_d <- addPhecodeInfo(results)
     
     # Get significant results
     res <- results_d[results_d$bonferroni & !is.na(results_d$p),]
-    #print("res")
-    #print(res)
-    print("sig_phewas")
+    print("Results")
+    print(res)
     sig_phewas <- rbind(sig_phewas, res)
-    print(sig_phewas)
     
     # Re-create the same threshold for plots as is used in bonferroni column
     sig_p <- 0.05/(nrow(results_d[!is.na(results_d$p),]))
