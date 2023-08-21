@@ -5,11 +5,12 @@ setwd("Z:/UKB Research/GBA1/PheWAS/")
 
 pheno <- read.csv('pheno_icd10_long.csv')
 covariate <- read.csv('covariates.csv')
+names(covariate)[4] <- "id.sex"
 phenotypes <- createPhenotypes(
     pheno, min.code.count = 1, add.phecode.exclusions = T, translate = T,
     vocabulary.map = PheWAS::phecode_map_icd10
 )
-rsid_files <- list.files(path = 'Z:/UKB Research/GBA1/PheWAS/',
+rsid_files <- list.files(path = getwd(),
                         pattern = glob2rx('plink*csv'))
 
 # Create table to aggregate significant results from all variants
@@ -20,7 +21,7 @@ ifelse(!dir.exists('png'), dir.create('png'), FALSE)
 ifelse(!dir.exists('csv'), dir.create('csv'), FALSE)
 
 # Run PheWAS for each variant separately
-for (file in rsid_files){
+for (file in rsid_files) {
     rsid <- strsplit(file, '.csv')[[1]]
     rsid <- strsplit(rsid, 'plink_')[[1]][2]
     print(rsid)
