@@ -34,7 +34,7 @@ pheno$Alcohol <- factor(pheno$Alcohol,
 pheno$EverSmoke <- factor(pheno$EverSmoke, labels = c("No", "Yes"))
 pheno$PackYears[which(is.na(pheno$PackYears))] <- 0
 pheno1 <- pheno
-pheno <- pheno %>% select(-c(EverSmoke, DODeath))
+pheno <- pheno %>% dplyr::select(-c(EverSmoke, DODeath))
 pheno$Parkinson <- factor(pheno$Parkinson, levels = c(0, 1))
 pheno$TBI <- factor(pheno$TBI, levels = c(0, 1))
 
@@ -64,12 +64,12 @@ try(plinkPath <- plinkPath[,-removecols], silent = T)
 colnames(pca)[1] <- "IID"
 park <- merge(pheno, plinkPath, by = "IID") %>%
     merge(., pca) %>%
-    select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc,
-              AnyNeuro, AnyOcular, IID)) %>%
+    dplyr::select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc,
+                     AnyNeuro, AnyOcular, IID)) %>%
     na.omit()
 
 y_park <- as.matrix(as.numeric(park$Parkinson)) - 1
-x_park <- park %>% select(-Parkinson)
+x_park <- park %>% dplyr::select(-Parkinson)
 x_park <- model.matrix(~ . -1, data = x_park)
 # Keeps female in there for some reason - need to remove
 x_park <- x_park[,-which(colnames(x_park) == "SexFemale")]
@@ -109,15 +109,24 @@ summary <- merge(summary, pathVars[,c(1, 3)], by.x = "Label", by.y = "Variant")
 
 
 ### Having any GBA variant
-any_x <- pheno %>% select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro,
-                             AnyOcular)) %>%
+any_x <- pheno %>% dplyr::select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc,
+                                    AnyNeuro, AnyOcular)) %>%
     mutate(AnyVar = case_when(
         IID %in% AnyVars$IID ~ 1,
         .default = 0
     )) %>%
     merge(., pca)
-any_x <- select(any_x, -IID)
+any_x <- dplyr::select(any_x, -IID)
 mod_any <- glm(Parkinson ~ ., data = any_x, family = "binomial")
+
+# Interaction b/t TBI and having variant?
+tbi_any <- glm(Parkinson ~ YOB + Townsend + Sex + BMI + Alcohol +
+                   PackYears + p22009_a1 +  p22009_a2 + p22009_a3 + p22009_a4 +
+                   p22009_a5 + p22009_a6 + p22009_a7 + p22009_a8 + p22009_a9 +
+                   p22009_a10 +
+                   TBI*AnyVar,
+                   data = any_x, family = "binomial") # no
+
 # Add for plotting
 mod_any_sum <- c(rep("Any Variant", 2), unname(coef(summary(mod_any))[16,]),
                       T, T, NA)
@@ -197,7 +206,7 @@ anyVar <- pheno %>% select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro,
         IID %in% AnyVars$IID ~ 1,
         .default = 0
     )) %>%
-    select(IID, AnyVar)
+    dplyr::select(IID, AnyVar)
 to_export <- merge(to_export, anyVar)
 
 for (i in 2:ncol(to_export)) {
