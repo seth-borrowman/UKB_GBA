@@ -197,11 +197,11 @@ plot2
 
 ### Export for PheWAS and other analysis
 to_export <- plinkPath %>%
-    select(IID, summary$Label[which(summary$FDR == T &
+    dplyr::select(IID, summary$Label[which(summary$FDR == T &
                                         summary$Label != " Any Variant")])
 
-anyVar <- pheno %>% select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc, AnyNeuro,
-                             AnyOcular)) %>%
+anyVar <- pheno %>% dplyr::select(-c(AnyCardio, AnyHemat, AnyHepat, AnyMusc,
+                                     AnyNeuro, AnyOcular)) %>%
     mutate(AnyVar = case_when(
         IID %in% AnyVars$IID ~ 1,
         .default = 0
