@@ -32,7 +32,8 @@ for (file in rsid_files) {
     results <- phewas(
         phenotypes, geno_data, cores = detectCores(),
         significance.threshold = c('p-value', 'bonferroni', 'fdr'),
-        covariates = covariate, additive.genotypes = T)
+        covariates = covariate, additive.genotypes = T,
+        alpha = (0.05/length(rsid_files)))
     
     # Add PheWAS descriptions
     results_d <- addPhecodeInfo(results)
