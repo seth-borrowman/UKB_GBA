@@ -133,24 +133,24 @@ plinkPath <- na.omit(plinkPath)
 # Find allele freq of minor variants in cohort
 pathVars$CohortFreq <- rep(0, nrow(pathVars))
 for (i in 1:nrow(pathVars)) {
-    pathVars$CohortFreq[i] <- (0.5 * unname(table(plinkPath[,(i+1)])[2]) +
-        unname(table(plinkPath[,(i+1)])[2])) / nrow(plinkPath)
+    pathVars$CohortFreq[i] <- (0.5 * unname(table(plinkPath[,(i + 1)])[2]) +
+        unname(table(plinkPath[,(i + 1)])[2])) / nrow(plinkPath)
 }
 
 # Count how many people have each variant
 pathVars$NumHet <- rep(-1, nrow(pathVars))
 pathVars$NumHom <- rep(-1, nrow(pathVars))
 for (i in 2:ncol(plinkPath)) {
-    pathVars$NumHet[i-1] <- length(which(plinkPath[,i] == "1"))
-    pathVars$NumHom[i-1] <- length(which(plinkPath[,i] == "0"))
+    pathVars$NumHet[i - 1] <- length(which(plinkPath[,i] == "1"))
+    pathVars$NumHom[i - 1] <- length(which(plinkPath[,i] == "0"))
 }
 pathVars <- pathVars %>% mutate(Total = NumHet + NumHom)
 
 # Count how many people in the cohort have any variants
-AnyVars <- plinkPath %>% filter(if_any(where(is.factor), \(val) val %in% c("0", "1")))
-    # 22301
-for(i in 2:ncol(plinkPath)) {
-    if(names(plinkPath)[i] != pathVars$Variant[i-1]){
+AnyVars <- plinkPath %>%
+    filter(if_any(where(is.factor), \(val) val %in% c("0", "1")))
+for (i in 2:ncol(plinkPath)) {
+    if (names(plinkPath)[i] != pathVars$Variant[i - 1]) {
         print(names(plinkPath)[i])
     }
 }
