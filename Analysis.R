@@ -75,7 +75,7 @@ x_park <- model.matrix(~ . -1, data = x_park)
 x_park <- x_park[,-which(colnames(x_park) == "SexFemale")]
 
 # Association analysis with logistic regression for each SNV
-summary <- matrix(rep(0, 5 * (ncol(x_park) - 24)), # -14 to skip covariates
+summary <- matrix(rep(0, 5 * (ncol(x_park) - 24)), # -24 to skip covariates
                   ncol = 5, nrow = ncol(x_park) - 24) %>%
     as.data.frame()
 colnames(summary) <- c("Variant", "Estimate", "Std. Error", "z value",
