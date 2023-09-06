@@ -13,7 +13,7 @@ path_Vars <- pathVars[
           pathVars$ClinSig == "Pathogenic/Likely pathogenic" |
           pathVars$ClinSig == "Likely pathogenic" |
           pathVars$ClinSig == "Pathogenic/Likely pathognic; risk factor" |
-          pathVars$REVEL >= 0.6),] # More strict than CleanVariants.R
+          pathVars$REVEL >= 0.6),]
 plinkPath <- plinkPath[ ,which(colnames(plinkPath) %in% c("IID",
                                                           path_Vars$Variant))]
 pheno$Sex <- factor(pheno$Sex, labels = c("Female", "Male"))
@@ -52,8 +52,8 @@ plinkPath <- droplevels(plinkPath)
 
 # Remove columns with <2 levels
 removecols <- c()
-for (i in 2:ncol(plinkPath)){
-    if (nlevels(plinkPath[,i]) < 2){
+for (i in 2:ncol(plinkPath)) {
+    if (nlevels(plinkPath[,i]) < 2) {
         removecols <- append(removecols, as.integer(i))
     }
 }
@@ -75,13 +75,13 @@ x_park <- model.matrix(~ . -1, data = x_park)
 x_park <- x_park[,-which(colnames(x_park) == "SexFemale")]
 
 # Association analysis with logistic regression for each SNV
-summary <- matrix(rep(0, 5*(ncol(x_park)-24)), # -14 to skip covariates
-                  ncol = 5, nrow = ncol(x_park)-24) %>%
+summary <- matrix(rep(0, 5 * (ncol(x_park) - 24)), # -14 to skip covariates
+                  ncol = 5, nrow = ncol(x_park) - 24) %>%
     as.data.frame()
 colnames(summary) <- c("Variant", "Estimate", "Std. Error", "z value",
                        "p")
-for (i in 15:(ncol(x_park)-10)) {
-    variants <- seq(15, ncol(x_park)-10)
+for (i in 15:(ncol(x_park) - 10)) {
+    variants <- seq(15, ncol(x_park) - 10)
     variants <- variants[which(variants != i)]
     x_new <- x_park[,-variants]
     mod <- glm(y_park ~ x_new, family = "binomial")
@@ -91,12 +91,12 @@ for (i in 15:(ncol(x_park)-10)) {
 summary[,2:5] <- sapply(summary[,2:5], as.numeric)
 summary <- summary %>%
     # Bonferroni correction based on alpha 0.05
-    mutate(Bonferroni = if_else(p <= (0.05/(nrow(summary)+1)), # +1 for any var
+    mutate(Bonferroni = if_else(p <= (0.05/(nrow(summary) + 1)), # +1 for anyVar
                                 TRUE, FALSE)) %>%
     # Benjamini-Hochberg FDR with alpha 0.05
     mutate(FDR = if_else(p <= ((match(p,
                         summary$p[order(summary$p, decreasing = F)]) / 
-                            (nrow(summary)+1))*0.05),
+                            (nrow(summary) + 1))*0.05),
                         TRUE, FALSE)) %>%
     # Create label for plotting
     mutate(Label = gsub("`", "", substr(Variant, 1, nchar(Variant) - 1)))
@@ -130,7 +130,7 @@ tbi_any <- glm(Parkinson ~ YOB + Townsend + Sex + BMI + Alcohol +
 # Add for plotting
 mod_any_sum <- c(rep("Any Variant", 2), unname(coef(summary(mod_any))[16,]),
                       T, T, NA)
-summary[nrow(summary)+1,] <- mod_any_sum
+summary[nrow(summary) + 1,] <- mod_any_sum
 summary[,c(3:6, 9)] <- summary[,c(3:6, 9)] %>% apply(., 2, as.numeric)
 
 ### Plot results
@@ -145,7 +145,7 @@ plot <- ggplot(na.omit(summary), aes(x = Pos, y = -log10(p))) +
     scale_linetype_manual(values = c("Bonferroni" = "solid", "FDR" = "dashed"),
                           name = "Legend") +
     geom_label_repel(
-        data=. %>% mutate(label = ifelse((Bonferroni == T) | (FDR == T),
+        data = . %>% mutate(label = ifelse((Bonferroni == T) | (FDR == T),
         as.character(Label), '')), aes(label = label), size = 3.5,
         label.size = NA, box.padding = 0.6, min.segment.length = 0.25) +
     ggtitle("GBA variants associated with Parkinson's Disease") +
@@ -165,6 +165,7 @@ plot <- ggplot(na.omit(summary), aes(x = Pos, y = -log10(p))) +
           axis.line.x.bottom = element_line(color = "black"))
     
 plot
+ggsave("ParkinsonManhattan.png")
 
 summary <- summary %>%
     mutate(sigOR = case_when(
@@ -194,6 +195,7 @@ plot2 <- ggplot(summary[which(summary$sigOR == 1),],
           axis.line.y.left = element_line(color = "black"),
           axis.line.x.bottom = element_line(color = "black"))
 plot2
+ggsave("ParkinsonORs.png")
 
 ### Export for PheWAS and other analysis
 to_export <- plinkPath %>%
@@ -229,10 +231,10 @@ plot3 <- ggplot(any_x[which(any_x$AnyVar != 1),], aes(x = p22009_a1,
     geom_point(alpha = 0.1, shape = 16, size = 1) +
     geom_point(data = any_x[which(any_x$AnyVar == 1),],
                aes(x = p22009_a1, y = p22009_a2),
-               color = "red", alpha = 0.3, shape = 16, size = 1)+
-    theme_minimal()+
-    xlab("PC1")+
-    ylab("PC2")+
+               color = "red", alpha = 0.3, shape = 16, size = 1) +
+    theme_minimal() +
+    xlab("PC1") +
+    ylab("PC2") +
     ggtitle("Principal components of those having any GBA variant")
 plot3
 
@@ -258,9 +260,9 @@ plot4 <- ggplot(park, aes(x = p22009_a1, y = p22009_a2)) +
     geom_point(data = park[which(park$WhichVar != "None"),],
                aes(x = p22009_a1, y = p22009_a2,
                    color = WhichVar), alpha = 0.5, shape = 16, size = 1) +
-    theme_minimal()+
+    theme_minimal() +
     xlab("PC1") +
-    ylab("PC2")+
-    ggtitle("Principal components of selected variants")+
+    ylab("PC2") +
+    ggtitle("Principal components of selected variants") +
     scale_color_discrete(name = "Variant")
 plot4

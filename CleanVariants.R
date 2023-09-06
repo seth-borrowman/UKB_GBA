@@ -120,7 +120,7 @@ pathVars <- pathogenicity[which(pathogenicity$ClinSig == "Likely pathogenic" |
                         pathogenicity$ClinSig == "Pathogenic" |
                         pathogenicity$ClinSig == "Pathogenic/Likely pathogenic" |
                         pathogenicity$ClinSig == "Pathogenic/Likely pathogenic; risk factor" |
-                        pathogenicity$REVEL > 0.5),]
+                        pathogenicity$REVEL > 0.6),]
 
 # Filter plink and factor so homozyg. major allele is reference
 plinkPath <- cbind(plink$IID, plink[,which(names(plink) %in% pathVars$Variant)])
