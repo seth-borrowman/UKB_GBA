@@ -54,22 +54,34 @@ for (file in rsid_files) {
     results_d <- results_d[!is.na(results_d$p),]
     results_d <- results_d[order(results_d$group),]
     results_d$order_num <- rep(1:nrow(results_d))
-    results_d$order_num <- factor(results_d$order_num, levels = results_d$order_num)
+    results_d$order_num <- factor(results_d$order_num,
+                                  levels = results_d$order_num)
     write.csv(results_d, sprintf('csv/%s_phewas.csv', rsid), row.names = FALSE)
     
     # Create Manhattan plot annotating significant phenotypes
     # Significant phenotypes are defined by passing Bonferroni correction
-    png(filename=sprintf('png/%s_phewas.png', rsid), , width = 1400, height = 800)
+    png(filename = sprintf('png/%s_phewas.png', rsid),
+        width = 1400, height = 800)
     options(ggrepel.max.overlaps = Inf) 
     man_plot <- ggplot(
         results_d, 
-        aes(x=order_num, y=-log(p))) + geom_point(aes(col=group, size=OR)) + theme_classic() + theme(
-            axis.text.x = element_blank(), panel.grid.minor=element_line(colour = 'grey', linetype = 'dashed'), 
-            axis.ticks=element_blank()
-        ) + labs(color = 'Category', size = 'Effect size', x = rsid, y = '-log(p-value)') + geom_text_repel(
-            data=. %>% mutate(label = ifelse((p < sig_p) & (bonferroni == TRUE), as.character(description), '')), aes(label = label), size = 3,
-            box.padding = unit(0.7, 'lines')
-        ) + geom_hline(yintercept=-log(sig_p), color='red', linewidth=1, alpha=0.5) 
+        aes(x = order_num, y = -log(p))) +
+        geom_point(aes(col = group, size = OR)) +
+        theme_classic() +
+        theme(
+            axis.text.x = element_blank(),
+            panel.grid.minor = element_line(colour = 'grey',
+                                            linetype = 'dashed'), 
+            axis.ticks = element_blank()) +
+        labs(color = 'Category', size = 'Effect size',
+             x = rsid, y = '-log(p-value)') +
+        geom_text_repel(
+            data = . %>%
+                mutate(label = ifelse((p < sig_p) & (bonferroni == TRUE),
+                                      as.character(description), '')),
+            aes(label = label), size = 3, box.padding = unit(0.7, 'lines')) +
+        geom_hline(yintercept = -log(sig_p), color = 'red',
+                   linewidth = 1, alpha = 0.5) 
     print(man_plot)
     dev.off()
 }
