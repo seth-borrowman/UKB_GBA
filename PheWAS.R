@@ -1,7 +1,7 @@
 library(ggrepel)
 library(PheWAS)
 
-setwd("Z:/UKB Research/GBA1/PheWAS/")
+setwd("Z:/UKB Research/GBA1/PheWAS2/")
 
 pheno <- read.csv('pheno_icd10_long.csv')
 covariate <- read.csv('covariates.csv')
@@ -21,19 +21,21 @@ ifelse(!dir.exists('png'), dir.create('png'), FALSE)
 ifelse(!dir.exists('csv'), dir.create('csv'), FALSE)
 
 # Run PheWAS for each variant separately
-for (file in rsid_files) {
+for (file in rsid_files[length(rsid_files) - 1]) {
+    print(Sys.time())
     rsid <- strsplit(file, '.csv')[[1]]
     rsid <- strsplit(rsid, 'plink_')[[1]][2]
     print(rsid)
     # Load geno data
-    geno_file <- paste('Z:/UKB Research/GBA1/PheWAS/', file, sep = "")
+    geno_file <- paste('Z:/UKB Research/GBA1/PheWAS2/', file, sep = "")
     geno_data <- read.csv(geno_file)
     names(geno_data)[1] <- "id"
+    geno_data[,2] <- -(geno_data[,2] - 2)
     results <- phewas(
         phenotypes, geno_data, cores = detectCores(),
         significance.threshold = c('p-value', 'bonferroni', 'fdr'),
         covariates = covariate, additive.genotypes = T,
-        alpha = (0.05/length(rsid_files)))
+        alpha = (0.05/length(rsid_files)), MASS.confint.level = 0.95)
     
     # Add PheWAS descriptions
     results_d <- addPhecodeInfo(results)
@@ -45,7 +47,7 @@ for (file in rsid_files) {
     sig_phewas <- rbind(sig_phewas, res)
     
     # Re-create the same threshold for plots as is used in bonferroni column
-    sig_p <- 0.05/(nrow(results_d[!is.na(results_d$p),]))
+    sig_p <- (0.05/length(rsid_files))/(nrow(results_d[!is.na(results_d$p),]))
     print("sig_p")
     print(sig_p)
     print(nrow(results_d[!is.na(results_d$p),]))
@@ -53,9 +55,10 @@ for (file in rsid_files) {
     # Exctract significant result and save it as csv
     results_d <- results_d[!is.na(results_d$p),]
     results_d <- results_d[order(results_d$group),]
-    results_d$order_num <- rep(1:nrow(results_d))
-    results_d$order_num <- factor(results_d$order_num,
-                                  levels = results_d$order_num)
+    # Add try() because this step sometimes fails and kills the loop
+    try(results_d$order_num <- rep(1:nrow(results_d)), silent = T)
+    try(results_d$order_num <- factor(results_d$order_num,
+                                  levels = results_d$order_num), silent = T)
     write.csv(results_d, sprintf('csv/%s_phewas.csv', rsid), row.names = FALSE)
     
     # Create Manhattan plot annotating significant phenotypes
