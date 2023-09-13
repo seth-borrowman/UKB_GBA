@@ -13,13 +13,14 @@ sex <- covariate %>%
         Sex == "Male" ~ "M",
         Sex == "Female" ~ "F"
     ))
+# Remove sex from further analysis - causes issues
+covariate <- covariate %>% select(-Sex)
 ### Create phenotypes ----
 phenotypes <- createPhenotypes(
     pheno, min.code.count = 1, add.phecode.exclusions = T, translate = T,
     vocabulary.map = PheWAS::phecode_map_icd10,
     full.population.ids = covariate$id,
-    id.sex = sex
-)
+    id.sex = sex)
 
 # Set up folders ----
 rsid_files <- list.files(path = getwd(),
