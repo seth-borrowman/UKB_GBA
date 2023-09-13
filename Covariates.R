@@ -66,7 +66,7 @@ pheno <- merge(pheno, pca)
 pheno1 <- pheno
 pheno <- pheno %>% dplyr::select(-c(EverSmoke, DODeath, AnyCardio, AnyHemat,
                                     AnyHepat, AnyMusc, AnyNeuro, AnyOcular,
-                                    ethnic_group, BMI_cat))
+                                    ethnic_group, BMI_cat, Parkinson))
 
 ### Clean up ----
 # Remove NA's and unneeded levels
@@ -91,7 +91,7 @@ for (i in 2:ncol(plinkPath)) {
 plinkPath <- plinkPath[,-removecols]
 pathVars <- pathVars[which(pathVars$Variant %in% colnames(plinkPath)),]
 
-### Export for PheWAS ----
+# Export for PheWAS ----
 for (i in 2:ncol(plinkPath)) {
     new <- plinkPath %>% select(IID, names(plinkPath)[i])
     name <- names(new)[2] %>% gsub(":", "_", .) %>% gsub(">", "_", .)
@@ -107,7 +107,27 @@ pheno1 <- pheno1 %>%
         IID %in% AnyVars$IID ~ 1,
         .default = 0
     ))
-pheno1 <- pheno1[which(pheno1$IID %in% pheno$IID),]
+phecode <- read_csv("PheWAS/phecode.csv")
+excl_codes <- phecode_exclude$exclusion_criteria[which(phecode_exclude$code == 332)]
+excl <- which(colnames(phecode) %in% excl_codes)
+                   
+excl_phecode <- phecode[,c(1, excl)] %>% filter_all(any_vars(. %in% c(T)))
+phecode <- phecode %>%
+    mutate(Parkinson = case_when(
+        `332` == T  ~ 1,
+        .default = 0
+    )) %>%
+    mutate(Parkinson = case_when(
+        id %in% excl_phecode$id ~ 0,
+        .default = Parkinson
+    ))
+pheno1 <- pheno1 %>%
+    select(-Parkinson) %>%
+    rename(id = IID) %>%
+    merge(., select(phecode, c(id, Parkinson)))
+pheno1$Parkinson <- factor(pheno1$Parkinson)
+
+pheno1 <- pheno1[which(pheno1$id %in% pheno$IID),]
 table1::table1(~ YOB + Townsend + Sex + BMI + Alcohol + EverSmoke + PackYears +
                    TBI + Parkinson + ethnic_group | AnyVar, data = pheno1)
 
@@ -126,8 +146,8 @@ plot <- ggplot(pheno[which(pheno$AnyVar != 1),], aes(x = p22009_a1,
 plot
 
 
-df <- data.frame(noVar = c(416957, 6832, 9865, 5489),
-                 Var = c(10110 , 61 ,94 , 115))
+df <- data.frame(noVar = c(438621, 3522),
+                 Var = c(10249 , 141))
 test <- chisq.test(df)
 test
 t.test(pheno1$PackYears[which(pheno1$AnyVar == 0)], pheno1$PackYears[which(pheno1$AnyVar == 1)])
