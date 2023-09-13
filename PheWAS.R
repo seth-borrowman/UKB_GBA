@@ -1,15 +1,27 @@
 library(ggrepel)
 library(PheWAS)
 
-setwd("Z:/UKB Research/GBA1/PheWAS2/")
-
+### Import data ----
+setwd("Z:/UKB Research/GBA1/PheWAS/")
 pheno <- read.csv('pheno_icd10_long.csv')
 covariate <- read.csv('covariates.csv')
-names(covariate)[4] <- "id.sex"
+# Make things easier for creating phenotypes
+names(covariate)[1] <- "id"
+sex <- covariate %>%
+    select(id, Sex) %>%
+    mutate(Sex = case_when(
+        Sex == "Male" ~ "M",
+        Sex == "Female" ~ "F"
+    ))
+### Create phenotypes ----
 phenotypes <- createPhenotypes(
     pheno, min.code.count = 1, add.phecode.exclusions = T, translate = T,
-    vocabulary.map = PheWAS::phecode_map_icd10
+    vocabulary.map = PheWAS::phecode_map_icd10,
+    full.population.ids = covariate$id,
+    id.sex = sex
 )
+
+# Set up folders ----
 rsid_files <- list.files(path = getwd(),
                         pattern = glob2rx('plink*csv'))
 
@@ -20,14 +32,14 @@ sig_phewas = data.frame()
 ifelse(!dir.exists('png'), dir.create('png'), FALSE)
 ifelse(!dir.exists('csv'), dir.create('csv'), FALSE)
 
-# Run PheWAS for each variant separately
-for (file in rsid_files[length(rsid_files) - 1]) {
+# Run PheWAS for each variant ----
+for (file in rsid_files) {
     print(Sys.time())
     rsid <- strsplit(file, '.csv')[[1]]
     rsid <- strsplit(rsid, 'plink_')[[1]][2]
     print(rsid)
     # Load geno data
-    geno_file <- paste('Z:/UKB Research/GBA1/PheWAS2/', file, sep = "")
+    geno_file <- paste('Z:/UKB Research/GBA1/PheWAS/', file, sep = "")
     geno_data <- read.csv(geno_file)
     names(geno_data)[1] <- "id"
     geno_data[,2] <- -(geno_data[,2] - 2)
@@ -35,7 +47,7 @@ for (file in rsid_files[length(rsid_files) - 1]) {
         phenotypes, geno_data, cores = detectCores(),
         significance.threshold = c('p-value', 'bonferroni', 'fdr'),
         covariates = covariate, additive.genotypes = T,
-        alpha = (0.05/length(rsid_files)), MASS.confint.level = 0.95)
+        alpha = (0.05/length(rsid_files)))
     
     # Add PheWAS descriptions
     results_d <- addPhecodeInfo(results)
@@ -89,6 +101,7 @@ for (file in rsid_files[length(rsid_files) - 1]) {
     dev.off()
 }
 
+# Output aggregate results ----
 write.csv(sig_phewas, 'significant_phewas.csv', row.names = FALSE)
 
 sig_phewas_tb <- tibble::tibble(sig_phewas)
