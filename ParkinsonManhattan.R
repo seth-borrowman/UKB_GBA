@@ -30,7 +30,7 @@ phenotypes <- phenotypes %>%
 
 summary <- data.frame()
 
-### Create functions for tryCatch ----
+### Create function for tryCatch ----
 tryfun <- function(data, var_name) {
     mod <- logistf(Parkinson ~ ., data = data,
                    control = logistf.control(maxstep = -1))
@@ -43,10 +43,6 @@ tryfun <- function(data, var_name) {
     pval <- unname(mod$prob[24])
     sum_line <- c(var_name, beta, beta_ci_low, beta_ci_upper,
                   OR, OR_ci_low, OR_ci_upper, pval)
-    return(sum_line)
-}
-errorfun <- function(var_name) {
-    sum_line <- c(var_name, rep(1, 7))
     return(sum_line)
 }
 
@@ -71,10 +67,13 @@ for (i in 2:ncol(plinkPath)) {
         mutate(Alcohol = factor(Alcohol)) %>%
         mutate(TBI = factor(TBI)) %>%
         mutate(Parkinson = factor(Parkinson))
+    message(Sys.time())
     message("Fitting model")
     # Some have had trouble converging - use try/catch
-    tryCatch(sum_line <- tryfun(df, varname),
-             error = (sum_line <- errorfun(varname)))
+    sum_line <- tryCatch({tryfun(df, varname)},
+                         error = function(e) {
+                             sum_line <- c(varname, rep(1, 7))
+                             return(sum_line)})
     print(sum_line)
     summary <- rbind(summary, sum_line)
 }
