@@ -30,6 +30,9 @@ summary <- summary %>%
 
 bon <- (0.05 / 214) / nrow(currentfile)
 
+# Fix SNP name
+summary$Variant[which(summary$Variant == "1:155236366:C>T")] <- "rs1064648"
+
 ### Write to file ----
 write_csv(summary, "ManhattanSummary.csv")
 
@@ -46,7 +49,8 @@ ggplot(summary, aes(x = Pos, y = -log10(pval))) +
                           name = "Legend") +
     geom_label_repel(
         data = . %>% mutate(label = ifelse(-log10(pval) > 5,
-                                           as.character(Variant), "")), aes(label = label), size = 3.5,
+                                           as.character(Variant), "")),
+        aes(label = label), size = 3.5,
         label.size = NA, box.padding = 0.6, min.segment.length = 0.25) +
     ylab(TeX("$-log_{10}p$")) +
     xlab("Chromosome 1 Position") +
