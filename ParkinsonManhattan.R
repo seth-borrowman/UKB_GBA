@@ -30,13 +30,34 @@ summary <- summary %>%
 
 bon <- (0.05 / 214) / nrow(currentfile)
 
-# Fix SNP name
+# Fix SNP names
+summary$Variant[which(summary$Variant == "1:155235069:C>T")] <- "rs2148069969"
+summary$Variant[which(summary$Variant == "1:155236276:C>T")] <- "rs74979486"
+summary$Variant[which(summary$Variant == "1:155238650:C>T")] <- "rs1671900493"
 summary$Variant[which(summary$Variant == "1:155236366:C>T")] <- "rs1064648"
+summary$Variant[which(summary$Variant == "1:155237513:G>A")] <- "rs755512507"
 
 ### Write to file ----
 write_csv(summary, "ManhattanSummary.csv")
 
 ### Plot ----
+# Select other SNPs in paper
+associated_vars <- c("rs2148069969",
+                     "rs74979486",
+                     "1:155237513:G>A",
+                     "1:155237564:T>C",
+                     "rs1671900493",
+                     "1:155240050:A>G",
+                     "rs1057942",
+                     "rs1170895261",
+                     "rs1671825414",
+                     "rs1671872221",
+                     "rs387906315",
+                     "rs398123532",
+                     "rs74462743",
+                     "rs75548401",
+                     "rs866075757"
+)
 # Manhattan plot
 ggplot(summary, aes(x = Pos, y = -log10(pval))) +
     geom_point() +
@@ -48,7 +69,7 @@ ggplot(summary, aes(x = Pos, y = -log10(pval))) +
     scale_linetype_manual(values = c("Bonferroni adjusted alpha" = "solid"),
                           name = "Legend") +
     geom_label_repel(
-        data = . %>% mutate(label = ifelse(-log10(pval) > 5,
+        data = . %>% mutate(label = ifelse(-log10(pval) > 3.75,
                                            as.character(Variant), "")),
         aes(label = label), size = 3.5,
         label.size = NA, box.padding = 0.6, min.segment.length = 0.25) +
